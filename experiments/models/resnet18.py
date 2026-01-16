@@ -106,23 +106,23 @@ class ResNet18(nn.Module):
             if isinstance(m, BasicBlock):
                 nn.init.zeros_(m.bn2.weight)
 
-    def _initialize_weights_madam(self):
+    def _initialize_weights_madam(self, eps=1e-1):
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
                 if m.bias is not None:
-                    nn.init.uniform_(m.bias, -1e-3, 1e-3)
+                    nn.init.uniform_(m.bias, -eps, eps)
 
             elif isinstance(m, nn.Linear):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
                 if m.bias is not None:
-                    nn.init.uniform_(m.bias, -1e-3, 1e-3)
+                    nn.init.uniform_(m.bias, -eps, eps)
 
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.ones_(m.weight)
-                nn.init.uniform_(m.bias, -1e-3, 1e-3)
+                nn.init.uniform_(m.bias, -eps, eps)
 
         for m in self.modules():
             if isinstance(m, BasicBlock):
-                nn.init.uniform_(m.bias, -1e-3, 1e-3)
+                nn.init.uniform_(m.bn2.weight, -eps, eps)
