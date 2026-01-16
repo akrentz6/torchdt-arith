@@ -34,7 +34,7 @@ class BasicBlock(nn.Module):
         return out
 
 class ResNet18(nn.Module):
-    def __init__(self, num_classes=10, dtype=None, device=None):
+    def __init__(self, num_classes=10, madam=False, dtype=None, device=None):
         super(ResNet18, self).__init__()
         self.in_channels = 64
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1,
@@ -52,7 +52,10 @@ class ResNet18(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512, num_classes, dtype=dtype, device=device)
 
-        self._initialize_weights()
+        if madam:
+            self._initialize_weights_madam()
+        else:
+            self._initialize_weights()
 
     def _make_layer(self, block, out_channels, num_blocks, stride, dtype=None, device=None):
         strides = [stride] + [1] * (num_blocks - 1)
@@ -102,3 +105,24 @@ class ResNet18(nn.Module):
         for m in self.modules():
             if isinstance(m, BasicBlock):
                 nn.init.zeros_(m.bn2.weight)
+
+    def _initialize_weights_madam(self):
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.uniform_(m.bias, -1e-3, 1e-3)
+
+            elif isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.uniform_(m.bias, -1e-3, 1e-3)
+
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.ones_(m.weight)
+                nn.init.uniform_(m.bias, -1e-3, 1e-3)
+
+        for m in self.modules():
+            if isinstance(m, BasicBlock):
+                nn.init.uniform_(m.bias, -1e-3, 1e-3)

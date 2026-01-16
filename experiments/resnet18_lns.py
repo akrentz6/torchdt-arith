@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torchvision import datasets, transforms
 from torchdt.lns import LNS64
-from torchdt.optim import TritonSGD, lr_scheduler
+from torchdt.optim import TritonSGD, TritonMadam, lr_scheduler
 from torchdt.transforms import ToDType, DTypeNormalize
 from datetime import datetime
 import argparse
@@ -27,9 +27,11 @@ parser.add_argument("--device", type=str, default="cuda:0", help="Device to use 
 parser.add_argument("--log_interval", type=int, default=10, help="Batches between logging training status (default: 10)")
 parser.add_argument("--batch_size", type=int, default=128, help="Batch size for training (default: 128)")
 parser.add_argument("--epochs", type=int, default=100, help="Number of training epochs (default: 100)")
+parser.add_argument("--optimizer", type=str, default="sgd", choices=["sgd", "madam"], help="Optimizer to use (default: sgd)")
 parser.add_argument("--lr", type=float, default=0.1, help="Learning rate (default: 0.1)")
 parser.add_argument("--momentum", type=float, default=0.9, help="SGD momentum (default: 0.9)")
-parser.add_argument("--weight_decay", type=float, default=1e-4, help="Weight decay (default: 1e-4)")
+parser.add_argument("--weight_decay", type=float, default=1e-4, help="SGD weight decay (default: 1e-4)")
+parser.add_argument("--beta", type=float, default=0.999, help="Madam beta parameter (default: 0.9)")
 args = parser.parse_args()
 
 date = datetime.now()
@@ -62,6 +64,7 @@ epochs = args.epochs
 lr = args.lr
 momentum = args.momentum
 weight_decay = args.weight_decay
+beta = args.beta
 
 dtype.set_prec(prec, table=table, table_device=device)
 dtype.enable_triton()
@@ -110,11 +113,19 @@ def scalar_from_float(cls, x):
 model = ResNet18(100, dtype=dtype, device=device)
 
 criterion = nn.NLLLoss()
-optimizer = TritonSGD(dtype, device, model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
+if args.optimizer == "sgd":
+    optimizer = TritonSGD(dtype, device, model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
+elif args.optimizer == "madam":
+    optimizer = TritonMadam(dtype, device, model.parameters(), lr=lr, beta=beta, use_pow=True)
+else:
+    raise ValueError(f"Unsupported optimizer: {args.optimizer}")
 scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[50, 75], gamma=0.1)
 
-logger.info(f"Training ResNet18 on CIFAR-100 with LNS64 (f = {prec}, lookup table={table}) on device {device}")
-logger.info(f"Hyperparameters: epochs={epochs}, batch_size={batch_size}, lr={lr}, momentum={momentum}, weight_decay={weight_decay}")
+logger.info(f"Training ResNet18 on CIFAR-100 with LNS64 (f={prec}, lookup table={table}) on device {device}")
+if args.optimizer == "sgd":
+    logger.info(f"Hyperparameters: epochs={epochs}, batch_size={batch_size}, lr={lr}, momentum={momentum}, weight_decay={weight_decay}")
+elif args.optimizer == "madam":
+    logger.info(f"Hyperparameters: epochs={epochs}, batch_size={batch_size}, lr={lr}, beta={beta}")
 
 history = []
 best_val_acc = -1.0
