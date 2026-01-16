@@ -110,7 +110,7 @@ def scalar_from_float(cls, x):
     x_tensor = torch.tensor(x, dtype=torch.float32, device=device)
     return cls.from_float(x_tensor)
 
-model = ResNet18(100, dtype=dtype, device=device)
+model = ResNet18(100, madam=(args.optimizer == "madam"), dtype=dtype, device=device)
 
 criterion = nn.NLLLoss()
 if args.optimizer == "sgd":
