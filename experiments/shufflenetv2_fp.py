@@ -191,8 +191,8 @@ for epoch in range(epochs):
     logger.info(
         f"Validation - "
         f"Loss: {avg_val_loss:.4f} | "
-        f"Correct: {top1_correct}/{val_samples} ({top1_acc:.2f}%) "
-        f"({(epoch_val_end - epoch_val_start):.2f}s)"
+        f"Correct: {top1_correct}/{val_samples} "
+        f"({top1_acc:.2f}%, {(epoch_val_end - epoch_val_start):.2f}s)"
     )
 
     history.append({
