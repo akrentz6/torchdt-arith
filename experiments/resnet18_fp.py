@@ -112,7 +112,7 @@ criterion = nn.NLLLoss()
 optimizer = SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
 scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[50, 75], gamma=0.1)
 
-logger.info(f"Training ResNet18 on CIFAR-100 with FP (dtype = {dtype}) on device {device}")
+logger.info(f"Training ResNet18 on CIFAR-100 with FP (dtype={dtype}) on device {device}")
 logger.info(f"Hyperparameters: epochs={epochs}, batch_size={batch_size}, lr={lr}, momentum={momentum}, weight_decay={weight_decay}")
 
 history = []
@@ -196,10 +196,11 @@ for epoch in range(epochs):
     epoch_val_end = time.time()
 
     logger.info(
-        f"Validation {(epoch_val_end - epoch_val_start):.2f}s - "
+        f"Validation - "
         f"Loss: {avg_val_loss:.4f} | "
         f"Top1: {top1_correct}/{val_samples} ({top1_acc:.2f}%) | "
-        f"Top5: {top5_correct}/{val_samples} ({top5_acc:.2f}%)"
+        f"Top5: {top5_correct}/{val_samples} ({top5_acc:.2f}%) "
+        f"({(epoch_val_end - epoch_val_start):.2f}s)"
     )
 
     history.append({
