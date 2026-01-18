@@ -32,7 +32,7 @@ def dtype_type(s):
         )
     return DTYPE_MAP[s.lower()]
 
-parser = argparse.ArgumentParser(description="Train ShuffleNetV2 on FashionMNIST in FP")
+parser = argparse.ArgumentParser(description="Train ShuffleNetV2 on CIFAR10 in FP")
 parser.add_argument("--dtype", type=dtype_type, default=torch.float32, help="Floating-point dtype to use (default: float32)")
 parser.add_argument("--device", type=str, default="cuda:0", help="Device to use for training (default: cuda:0)")
 parser.add_argument("--log_interval", type=int, default=10, help="Batches between logging training status (default: 10)")
@@ -71,21 +71,21 @@ lr = args.lr
 momentum = args.momentum
 weight_decay = args.weight_decay
 
-mean = (0.28604060219395277542,)
-std = (0.35302424954262440204,)
+mean = (0.49139961600303649902, 0.48215851187705993652, 0.44653093814849853516)
+std = (0.24703231453895568848, 0.24348483979701995850, 0.26158782839775085449)
 train_transform = transforms.Compose([
-    transforms.Resize(32),
+    transforms.RandomCrop(32, padding=4),
+    transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
     transforms.Normalize(mean=mean, std=std),
 ])
 test_transform = transforms.Compose([
-    transforms.Resize(32),
     transforms.ToTensor(),
     transforms.Normalize(mean=mean, std=std),
 ])
 
 train_loader = torch.utils.data.DataLoader(
-    datasets.FashionMNIST(
+    datasets.CIFAR10(
         root="./data",
         train=True,
         download=True,
@@ -95,7 +95,7 @@ train_loader = torch.utils.data.DataLoader(
     shuffle=True,
 )
 test_loader = torch.utils.data.DataLoader(
-    datasets.FashionMNIST(
+    datasets.CIFAR10(
         root="./data",
         train=False,
         download=True,
@@ -105,13 +105,13 @@ test_loader = torch.utils.data.DataLoader(
     shuffle=False,
 )
 
-model = ShuffleNetV2(10, 1, dtype=dtype, device=device)
+model = ShuffleNetV2(10, 3, dtype=dtype, device=device)
 
 criterion = nn.NLLLoss()
 optimizer = SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
 scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[50, 75], gamma=0.1)
 
-logger.info(f"Training ShuffleNetV2 on Fashion-MNIST with FP (dtype={dtype}) on device {device}")
+logger.info(f"Training ShuffleNetV2 on CIFAR-10 with FP (dtype={dtype}) on device {device}")
 logger.info(f"Hyperparameters: epochs={epochs}, batch_size={batch_size}, lr={lr}, momentum={momentum}, weight_decay={weight_decay}")
 
 history = []

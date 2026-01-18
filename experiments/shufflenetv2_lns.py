@@ -20,7 +20,7 @@ torch.cuda.manual_seed_all(42)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-parser = argparse.ArgumentParser(description="Train ShuffleNetV2 on FashionMNIST in LNS")
+parser = argparse.ArgumentParser(description="Train ShuffleNetV2 on CIFAR10 in LNS")
 parser.add_argument("--prec", type=int, default=16, help="Precision for LNS dtype (default: 16)")
 parser.add_argument("--table", type=bool, default=True, action=argparse.BooleanOptionalAction, help="Use lookup table for LNS operations (default: True)")
 parser.add_argument("--device", type=str, default="cuda:0", help="Device to use for training (default: cuda:0)")
@@ -69,21 +69,21 @@ beta = args.beta
 dtype.set_prec(prec, table=table, table_device=device)
 dtype.enable_triton()
 
-mean = (0.28604060219395277542,)
-std = (0.35302424954262440204,)
+mean = (0.49139961600303649902, 0.48215851187705993652, 0.44653093814849853516)
+std = (0.24703231453895568848, 0.24348483979701995850, 0.26158782839775085449)
 train_transform = transforms.Compose([
-    transforms.Resize(32),
+    transforms.RandomCrop(32, padding=4),
+    transforms.RandomHorizontalFlip(),
     ToDType(dtype, device=device),
     DTypeNormalize(dtype, mean=mean, std=std, device=device),
 ])
 test_transform = transforms.Compose([
-    transforms.Resize(32),
     ToDType(dtype, device=device),
     DTypeNormalize(dtype, mean=mean, std=std, device=device),
 ])
 
 train_loader = torch.utils.data.DataLoader(
-    datasets.FashionMNIST(
+    datasets.CIFAR10(
         root="./data",
         train=True,
         download=True,
@@ -93,7 +93,7 @@ train_loader = torch.utils.data.DataLoader(
     shuffle=True,
 )
 test_loader = torch.utils.data.DataLoader(
-    datasets.FashionMNIST(
+    datasets.CIFAR10(
         root="./data",
         train=False,
         download=True,
@@ -109,7 +109,7 @@ def scalar_from_float(cls, x):
     x_tensor = torch.tensor(x, dtype=torch.float32, device=device)
     return cls.from_float(x_tensor)
 
-model = ShuffleNetV2(10, 1, madam=(args.optimizer == "madam"), dtype=dtype, device=device)
+model = ShuffleNetV2(10, 3, madam=(args.optimizer == "madam"), dtype=dtype, device=device)
 
 criterion = nn.NLLLoss()
 if args.optimizer == "sgd":
@@ -120,7 +120,7 @@ else:
     raise ValueError(f"Unsupported optimizer: {args.optimizer}")
 scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[50, 75], gamma=0.1)
 
-logger.info(f"Training ShuffleNetV2 on Fashion-MNIST with LNS64 (f={prec}, lookup table={table}) on device {device}")
+logger.info(f"Training ShuffleNetV2 on CIFAR-10 with LNS64 (f={prec}, lookup table={table}) on device {device}")
 if args.optimizer == "sgd":
     logger.info(f"Hyperparameters: epochs={epochs}, batch_size={batch_size}, lr={lr}, momentum={momentum}, weight_decay={weight_decay}")
 elif args.optimizer == "madam":
